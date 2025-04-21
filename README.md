@@ -1,40 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# LandClaim DApp Design Document
 
-## Getting Started
+## Overview
 
-First, run the development server:
+**LandClaim** is a decentralized application that allows users to claim virtual land based on [what3words](https://what3words.com/) 3-word geocoding, trade land with other users, and release ownership. It uses Ethereum smart contracts and a Next.js frontend.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## Goals
+
+- Enable users to **claim** and **own** 3m x 3m virtual land using 3-word addresses.
+- Allow **land-for-land trades** between users.
+- Provide functionality for users to **release** or **delete** their profile and associated lands.
+- Visualize claimed lands and trade offers.
+- Ensure fair ownership rules (e.g., no claiming already claimed land).
+
+---
+
+## Smart Contract: `LandClaim.sol`
+
+### Key Data Structures
+
+```solidity
+struct Trade {
+  address proposer;
+  string offeredLand;
+  string requestedLand;
+  bool isActive;
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### State Variables
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+- `mapping(string => address) landOwners`
+- `mapping(address => string[]) userLands`
+- `mapping(uint256 => Trade) trades`
+- `uint256 tradeCounter`
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+---
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+### Key Functions
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Function | Purpose |
+|---------|---------|
+| `claimLand(string)` | Claim an unowned land |
+| `proposeTrade(string, string)` | Offer a land-for-land trade |
+| `acceptTrade(uint256)` | Accept a trade and swap lands |
+| `releaseLand(string)` | Give up ownership of land |
+| `deleteProfile()` | Release all user lands |
+| `getMyLands()` | Return user's owned lands |
+| `getOffersForMe()` | Return trades proposing to take your land |
+| `getOffersMadeByMe()` | Return trades you proposed |
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Frontend: `Next.js + TypeScript`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+### Pages & Components
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+#### `pages/index.tsx`
+- Landing page
+- Connect Wallet button
+- Navigation to dashboard
 
-## Deploy on Vercel
+#### `components/Claim.tsx`
+- Input for claiming new land
+- Displays claim status
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### `components/MyLands.tsx`
+- Displays claimed land
+- Buttons: View on Map, Trade
+- Opens modal to propose trade
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+#### `components/TradeModal.tsx`
+- Input requested 3-word land
+- Propose trade via contract call
+
+#### `components/TradeInbox.tsx`
+- Show incoming trades with Accept button
+
+#### `components/DeleteProfile.tsx`
+- Calls `deleteProfile()` to release all land
+
+---
+
+## Contract Security
+
+- Prevent claiming of already claimed land.
+- Require ownership before releasing or offering trade.
+- Prevent trade of land with self.
+- Ownership verified during trade acceptance.
+
+---
+
+## Future Improvements
+
+- Add forced takeover logic for surrounded land
+- Visual land map interface
+- Land auction and buy/sell market
+- Role-based land zones (e.g., farming, mining)
+- Anti-bot protections for claim & trade
+
+---
+
+## Dependencies
+
+- Solidity `^0.8.20`
+- Next.js
+- Ethers.js or Wagmi
+- TailwindCSS for styling
+- MetaMask for user interaction
+
+---

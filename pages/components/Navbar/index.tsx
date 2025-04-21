@@ -34,8 +34,8 @@ const Navbar: React.FC = () => {
                             <li>
                                 <a>Documentation</a>
                                 <ul className="p-2">
-                                    <li><a>github</a></li>
-                                    <li><a>what3words</a></li>
+                                    <li><a href='https://github.com/akhil2015/landgrab.ui/blob/main/README.md'>github</a></li>
+                                    <li><a href='https://what3words.com/'>what3words</a></li>
                                 </ul>
                             </li>
                         </ul>
@@ -49,8 +49,8 @@ const Navbar: React.FC = () => {
                             <details>
                                 <summary>Documentation</summary>
                                 <ul className="p-2">
-                                    <li><a>github</a></li>
-                                    <li><a>what3words</a></li>
+                                    <li><a href='https://github.com/akhil2015/landgrab.ui/blob/main/README.md'>github</a></li>
+                                    <li><a href='https://what3words.com/'>what3words</a></li>
                                 </ul>
                             </details>
                         </li>
