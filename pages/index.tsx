@@ -1,115 +1,252 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { useEffect, useState } from "react";
+import Navbar from "./components/Navbar";
+import { LAND_CLAIM_ABI } from "@/contracts/LandClaim";
+import { useWriteContract, useReadContract, useAccount } from "wagmi";
+import { WHAT3WORDS_API_KEY } from "@/constants";
+const LAND_CLAIM_ADDRESS = '0x0CBc162B7b9583827c1E19d0037E7AC238E7eed0';
 
 export default function Home() {
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
+  const [claimed, setClaimed] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [threeWordName, setThreeWordName] = useState<string | null>(null);
+  const [targetThreeWordName, setTargetThreeWordName] = useState<string>('');
+  const [landToTradeFrom, setLandToTradeFrom] = useState<string | null>(null);
+  const { address, isConnected } = useAccount();
+  const { writeContract, isSuccess } = useWriteContract();
+  const { data: claimedLandsData, refetch: refetchClaimedLands } = useReadContract({
+    address: LAND_CLAIM_ADDRESS,
+    abi: LAND_CLAIM_ABI,
+    functionName: 'getMyLands',
+    account: address,
+  });
+  const { data: isClaimed, refetch: refetchIsClaimed } = useReadContract({
+    abi: LAND_CLAIM_ABI,
+    address: LAND_CLAIM_ADDRESS,
+    functionName: 'isLandClaimed',
+    args: [threeWordName],
+  });
+
+  useEffect(() => {
+    if (isSuccess) {
+      refetchClaimedLands();
+    }
+  }
+    , [isSuccess]);
+
+  useEffect(() => {
+    setClaimed(isClaimed as boolean);
+  }, [isClaimed]);
+
+  const fetchLocation = (): void => {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position: GeolocationPosition) => {
+        const latitude = parseFloat(position.coords.latitude.toFixed(6));
+        const longitude = parseFloat(position.coords.longitude.toFixed(6));
+        setLat(latitude);
+        setLng(longitude);
+
+        // Replace with actual logic to check if claimed
+        refetchIsClaimed()
+
+        try {
+          const w3w = await fetchThreeWordAddress(latitude, longitude);
+          setThreeWordName(w3w);
+        } catch (err) {
+          console.error(err);
+          setThreeWordName("Unable to fetch what3words name.");
+        }
+
+        setError(null);
+      },
+      (err: GeolocationPositionError) => {
+        console.error(err);
+        setError("Unable to retrieve your location.");
+      }
+    );
+  };
+
+  const fetchThreeWordAddress = async (lat: number, lng: number): Promise<string> => {
+    const apiKey = WHAT3WORDS_API_KEY; // Replace with your actual API key
+    console.log(lat, lng)
+    const url = `https://api.what3words.com/v3/convert-to-3wa?coordinates=${lat},${lng}&key=${apiKey}`;
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to fetch 3-word address");
+
+    const data = await res.json();
+    return data.words;
+  };
+
+
+  const handleClaim = async (): Promise<void> => {
+
+    await writeContract({
+      abi: LAND_CLAIM_ABI,
+      address: LAND_CLAIM_ADDRESS,
+      functionName: 'claimLand',
+      args: [threeWordName],
+    });
+    await refetchClaimedLands();
+  }
+  const handleRelease = async (): Promise<void> => {
+    if (!threeWordName) return;
+
+    await writeContract({
+      abi: LAND_CLAIM_ABI,
+      address: LAND_CLAIM_ADDRESS,
+      functionName: 'releaseLand',
+      args: [threeWordName],
+    });
+    await refetchClaimedLands();
+    setClaimed(false);
+  };
+
+  const handleDeleteProfile = async (): Promise<void> => {
+    if (confirm("Are you sure you want to delete your profile? This action cannot be undone.")) {
+      await writeContract({
+        abi: LAND_CLAIM_ABI,
+        address: LAND_CLAIM_ADDRESS,
+        functionName: 'deleteProfile',
+      });
+      console.log("Profile deleted");
+    }
+  };
+
+  const handleProposeTrade = async (): Promise<void> => {
+    if (!landToTradeFrom || !targetThreeWordName) return;
+    // Check if the target land is already claimed
+
+    await writeContract({
+      abi: LAND_CLAIM_ABI,
+      address: LAND_CLAIM_ADDRESS,
+      functionName: 'proposeTrade',
+      args: [landToTradeFrom, targetThreeWordName],
+    });
+    await refetchClaimedLands();
+    (document.getElementById('trade_modal') as HTMLDialogElement)?.close();
+    setLandToTradeFrom(null);
+    setTargetThreeWordName("");
+
+  };
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-    >
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              pages/index.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+    <>
+      <div>
+        <Navbar />
+        <dialog id="my_modal_2" className="modal">
+          <div className="modal-box w-full max-w-sm p-6 space-y-4 text-center h-96">
+            <h3 className="font-bold text-lg">Claim/Release Land</h3>
+            <button className="btn btn-primary" onClick={fetchLocation} type="button">
+              📍 Get Current Location
+            </button>
+            <h6 className="font-bold text-xs">*Fetch current location to get started</h6>
+
+            {error && <p className="text-red-500">{error}</p>}
+
+            {lat !== null && lng !== null && (
+              <div className="text-sm">
+                <p><strong>Latitude:</strong> {lat}</p>
+                <p><strong>Longitude:</strong> {lng}</p>
+                <p className="bg-secondary w-64 mx-auto m-2 p-4 rounded-xl"><strong>{threeWordName || "Loading..."}</strong> </p>
+                <div className="modal-action">
+                  {claimed === null ? null : claimed ? (
+                    (claimedLandsData as [string | null])?.includes(threeWordName) ? (
+                      <button className="btn btn-warning mt-8" onClick={handleRelease}>
+                        Release this land
+                      </button>
+                    ) : (
+                      <p className="text-red-600 mt-2">🚫 This land is already claimed by someone else.</p>
+                    )
+                  ) : (
+                    <button className="btn btn-secondary mt-8" onClick={handleClaim}>
+                      Claim this land
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <form method="dialog" className="modal-backdrop">
+            <button>close</button>
+          </form>
+        </dialog>
+        <dialog id="trade_modal" className="modal">
+          <div className="modal-box w-full max-w-md space-y-4 text-center">
+            <h3 className="font-bold text-lg">Trade Land</h3>
+            <p className="text-sm text-gray-400">You are offering: <strong>{landToTradeFrom}</strong></p>
+            <input
+              type="text"
+              placeholder="Enter target what3words address"
+              value={targetThreeWordName}
+              onChange={(e) => setTargetThreeWordName(e.target.value)}
+              className="input input-bordered w-full"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <div className="modal-action flex justify-center gap-4">
+              <button
+                className="btn btn-primary"
+                onClick={handleProposeTrade}
+              >
+                Send Trade Request
+              </button>
+              <form method="dialog">
+                <button className="btn">Cancel</button>
+              </form>
+            </div>
+          </div>
+        </dialog>
+        <div className="max-w-2xl mx-auto my-8 p-4 bg-base-200 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-4">👤 Profile</h2>
+          <button
+            className="btn btn-error w-full"
+            onClick={handleDeleteProfile}
           >
-            Read our docs
-          </a>
+            Delete Profile
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        <div className="max-w-2xl mx-auto my-8 p-4 bg-base-200 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-4">📍 Claimed Lands</h2>
+          <ul className="space-y-3">
+            {isConnected && claimedLandsData && (claimedLandsData as any).map((land:string, index:number) => (
+              <li key={index} className="bg-white dark:bg-secondary p-4 rounded-lg shadow border text-center">
+                <p className="text-white text-3xl"><strong>{land}</strong> </p>
+                <button className="btn btn-secondary bg-white text-secondary mx-2 mt-2" onClick={() => {
+                  setLandToTradeFrom(land); // store the land user is offering
+                  setTargetThreeWordName(""); // reset input
+                  const modal = document.getElementById('trade_modal') as HTMLDialogElement;
+                  if (modal) modal.showModal();
+                }}>
+                  Trade
+                </button>
+                <button className="btn btn-secondary bg-white text-secondary mx-2 mt-2">
+                  <a href={`https://www.what3words.com/${land}`} target="_blank" rel="noopener noreferrer">
+                    View on Map
+                  </a>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <button className="btn fixed bottom-4 right-4 bg-secondary py-8 rounded-full shadow-lg" onClick={() => {
+          const modal = document.getElementById('my_modal_2') as HTMLDialogElement | null;
+          if (modal) modal.showModal();
+        }}>
+          Claim
+          <div className="btn btn-circle m-2" >
+
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-[1.2em]">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </div>
+        </button>
+
+      </div>
+    </>
   );
 }
