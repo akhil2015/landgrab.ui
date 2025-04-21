@@ -1,2 +1,2 @@
 export const LAND_CLAIM_ADDRESS = "0x0CBc162B7b9583827c1E19d0037E7AC238E7eed0"
-export const WHAT3WORDS_API_KEY = process.env.WHAT3WORDS_API_KEY || "LRWGSLW9" //fetch from process.env
+export const WHAT3WORDS_API_KEY = process.env.NEXT_PUBLIC_WHAT3WORDS_API_KEY  //fetch from process.env
