@@ -14,7 +14,7 @@ export default function Home() {
   const [targetThreeWordName, setTargetThreeWordName] = useState<string>('');
   const [landToTradeFrom, setLandToTradeFrom] = useState<string | null>(null);
   const { address, isConnected } = useAccount();
-  const { writeContract, isSuccess } = useWriteContract();
+  const { writeContract } = useWriteContract();
   const { data: claimedLandsData, refetch: refetchClaimedLands } = useReadContract({
     address: LAND_CLAIM_ADDRESS,
     abi: LAND_CLAIM_ABI,
@@ -28,12 +28,6 @@ export default function Home() {
     args: [threeWordName],
   });
 
-  useEffect(() => {
-    if (isSuccess) {
-      refetchClaimedLands();
-    }
-  }
-    , [isSuccess]);
 
   useEffect(() => {
     setClaimed(isClaimed as boolean);
