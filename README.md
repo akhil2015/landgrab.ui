@@ -16,6 +16,15 @@
 
 ---
 
+## Deployment Details
+
+- **Network**: Sepolia (EVM-compatible testnet)  
+- **Smart Contract Address**: `0x0CBc162B7b9583827c1E19d0037E7AC238E7eed0`  
+- **Explorer URL**: [View on Sepolia Etherscan](https://sepolia.etherscan.io/address/0x0CBc162B7b9583827c1E19d0037E7AC238E7eed0)  
+- **Frontend URL**: [https://landgrab.netlify.app](https://landgrab.netlify.app)
+
+---
+
 ## Smart Contract: `LandClaim.sol`
 
 ### Key Data Structures
@@ -80,6 +89,22 @@ struct Trade {
 
 #### `components/DeleteProfile.tsx`
 - Calls `deleteProfile()` to release all land
+
+---
+
+## Design Decisions
+
+1. **Network Selected: Sepolia (EVM)**  
+   Chosen for flexibility in testing and the ability to switch networks as needed for development or deployment.
+
+2. **Efficient Ownership Tracking**  
+   Uses `mapping(string => address)` for O(1) ownership lookups; each user has a `string[]` for their lands.
+
+3. **Trade via Indexed Structs**  
+   Land-for-land trades are managed through a `Trade` struct with a global `tradeCounter` for ID tracking and querying.
+
+4. **Single-Contract Architecture**  
+   All logic (claim, trade, release, delete) is centralized in one smart contract for simplicity and atomicity.
 
 ---
 
