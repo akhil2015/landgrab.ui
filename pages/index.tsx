@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import Navbar from "./components/Navbar";
 import { LAND_CLAIM_ABI } from "@/contracts/LandClaim";
-import { useWriteContract, useReadContract, useAccount } from "wagmi";
+import { useReadContract, useAccount } from "wagmi";
+import { writeContract, waitForTransactionReceipt } from 'wagmi/actions';
+import { config } from "@/lib/wagmi";
 import { WHAT3WORDS_API_KEY } from "@/constants";
 const LAND_CLAIM_ADDRESS = '0x0CBc162B7b9583827c1E19d0037E7AC238E7eed0';
 
@@ -14,7 +16,6 @@ export default function Home() {
   const [targetThreeWordName, setTargetThreeWordName] = useState<string>('');
   const [landToTradeFrom, setLandToTradeFrom] = useState<string | null>(null);
   const { address, isConnected } = useAccount();
-  const { writeContract } = useWriteContract();
   const { data: claimedLandsData, refetch: refetchClaimedLands } = useReadContract({
     address: LAND_CLAIM_ADDRESS,
     abi: LAND_CLAIM_ABI,
@@ -81,34 +82,50 @@ export default function Home() {
 
   const handleClaim = async (): Promise<void> => {
 
-    await writeContract({
+    const txid = await writeContract(config, {
       abi: LAND_CLAIM_ABI,
       address: LAND_CLAIM_ADDRESS,
       functionName: 'claimLand',
       args: [threeWordName],
     });
+    if (txid === undefined) return;
+    await waitForTransactionReceipt(config, { hash: txid });
     await refetchClaimedLands();
+    //close modal
+    const modal = document.getElementById('my_modal_2') as HTMLDialogElement;
+    if (modal) modal.close();
+    setClaimed(true);
   }
   const handleRelease = async (): Promise<void> => {
     if (!threeWordName) return;
 
-    await writeContract({
+    const txid = await writeContract(config, {
       abi: LAND_CLAIM_ABI,
       address: LAND_CLAIM_ADDRESS,
       functionName: 'releaseLand',
       args: [threeWordName],
     });
+    console.log("waiting for hash", txid)
+
+    if (txid === undefined) return;
+    await waitForTransactionReceipt(config, { hash: txid });
     await refetchClaimedLands();
+    //close modal
+    const modal = document.getElementById('my_modal_2') as HTMLDialogElement;
+    if (modal) modal.close();
     setClaimed(false);
   };
 
   const handleDeleteProfile = async (): Promise<void> => {
     if (confirm("Are you sure you want to delete your profile? This action cannot be undone.")) {
-      await writeContract({
+      const txid = await writeContract(config, {
         abi: LAND_CLAIM_ABI,
         address: LAND_CLAIM_ADDRESS,
         functionName: 'deleteProfile',
       });
+      if (txid === undefined) return;
+      await waitForTransactionReceipt(config, { hash: txid });
+      await refetchClaimedLands();
       console.log("Profile deleted");
     }
   };
@@ -117,13 +134,14 @@ export default function Home() {
     if (!landToTradeFrom || !targetThreeWordName) return;
     // Check if the target land is already claimed
 
-    await writeContract({
+    const txid = await writeContract(config, {
       abi: LAND_CLAIM_ABI,
       address: LAND_CLAIM_ADDRESS,
       functionName: 'proposeTrade',
       args: [landToTradeFrom, targetThreeWordName],
     });
-    await refetchClaimedLands();
+    if (txid === undefined) return;
+    await waitForTransactionReceipt(config, { hash: txid });
     (document.getElementById('trade_modal') as HTMLDialogElement)?.close();
     setLandToTradeFrom(null);
     setTargetThreeWordName("");
@@ -207,7 +225,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto my-8 p-4 bg-base-200 rounded-lg shadow-lg">
           <h2 className="text-xl font-bold mb-4">📍 Claimed Lands</h2>
           <ul className="space-y-3">
-            {isConnected && Array.isArray(claimedLandsData) && (claimedLandsData).map((land:string, index:number) => (
+            {isConnected && Array.isArray(claimedLandsData) && (claimedLandsData).map((land: string, index: number) => (
               <li key={index} className="bg-white dark:bg-secondary p-4 rounded-lg shadow border text-center">
                 <p className="text-white text-3xl"><strong>{land}</strong> </p>
                 <button className="btn btn-secondary bg-white text-secondary mx-2 mt-2" onClick={() => {
