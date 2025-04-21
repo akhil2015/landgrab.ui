@@ -213,7 +213,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto my-8 p-4 bg-base-200 rounded-lg shadow-lg">
           <h2 className="text-xl font-bold mb-4">📍 Claimed Lands</h2>
           <ul className="space-y-3">
-            {isConnected && claimedLandsData && (claimedLandsData as any).map((land:string, index:number) => (
+            {isConnected && Array.isArray(claimedLandsData) && (claimedLandsData).map((land:string, index:number) => (
               <li key={index} className="bg-white dark:bg-secondary p-4 rounded-lg shadow border text-center">
                 <p className="text-white text-3xl"><strong>{land}</strong> </p>
                 <button className="btn btn-secondary bg-white text-secondary mx-2 mt-2" onClick={() => {
