@@ -117,6 +117,10 @@ export default function Home() {
   };
 
   const handleDeleteProfile = async (): Promise<void> => {
+    if (!isConnected) {
+      alert("Please connect your wallet to delete your profile");
+      return;
+    }
     if (confirm("Are you sure you want to delete your profile? This action cannot be undone.")) {
       const txid = await writeContract(config, {
         abi: LAND_CLAIM_ABI,
@@ -213,15 +217,7 @@ export default function Home() {
             </div>
           </div>
         </dialog>
-        <div className="max-w-2xl mx-auto my-8 p-4 bg-base-200 rounded-lg shadow-lg">
-          <h2 className="text-xl font-bold mb-4">👤 Profile</h2>
-          <button
-            className="btn btn-error w-full"
-            onClick={handleDeleteProfile}
-          >
-            Delete Profile
-          </button>
-        </div>
+
         <div className="max-w-2xl mx-auto my-8 p-4 bg-base-200 rounded-lg shadow-lg">
           <h2 className="text-xl font-bold mb-4">📍 Claimed Lands</h2>
           <ul className="space-y-3">
@@ -245,6 +241,15 @@ export default function Home() {
             ))}
           </ul>
         </div>
+        {(<div className="max-w-2xl mx-auto my-8 p-4 bg-base-200 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-4">👤 Profile</h2>
+          <button
+            className="btn btn-error w-full"
+            onClick={handleDeleteProfile}
+          >
+            Delete Profile
+          </button>
+        </div>)}
         <button className="btn fixed bottom-4 right-4 bg-secondary py-8 rounded-full shadow-lg" onClick={() => {
           const modal = document.getElementById('my_modal_2') as HTMLDialogElement | null;
           if (modal) modal.showModal();
