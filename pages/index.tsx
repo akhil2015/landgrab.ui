@@ -81,6 +81,14 @@ export default function Home() {
 
 
   const handleClaim = async (): Promise<void> => {
+    if (isConnected === false) {
+      alert("Please connect your wallet to claim land");
+      return;
+    }
+    if (!threeWordName) {
+      alert("Please fetch your location first");
+      return;
+    }
 
     const txid = await writeContract(config, {
       abi: LAND_CLAIM_ABI,
@@ -94,6 +102,10 @@ export default function Home() {
     //close modal
     const modal = document.getElementById('my_modal_2') as HTMLDialogElement;
     if (modal) modal.close();
+    setThreeWordName(null);
+    setLat(null);
+    setLng(null);
+    setError(null);
     setClaimed(true);
   }
   const handleRelease = async (): Promise<void> => {
@@ -113,6 +125,10 @@ export default function Home() {
     //close modal
     const modal = document.getElementById('my_modal_2') as HTMLDialogElement;
     if (modal) modal.close();
+    setThreeWordName(null);
+    setLat(null);
+    setLng(null);
+    setError(null);
     setClaimed(false);
   };
 
